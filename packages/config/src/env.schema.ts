@@ -20,7 +20,7 @@ export const EnvSchema = z.object({
 
   // Ollama
   OLLAMA_BASE_URL: z.string().url().default('http://localhost:11434'),
-  OLLAMA_MODEL: z.string().default('qwen2.5:3b'),
+  OLLAMA_MODEL: z.string().default('qwen2.5:1.5b'),
   OLLAMA_TIMEOUT_MS: z.coerce.number().int().positive().default(45000),
 
   // Authentication & Security

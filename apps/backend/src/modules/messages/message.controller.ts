@@ -17,25 +17,35 @@ export class MessageController {
    * Otherwise enqueues into async worker queue and returns 202.
    */
   public async handleInboundMessage(req: FastifyRequest, reply: FastifyReply) {
+    console.log('DEBUG: inbound request received', {
+      body: req.body,
+      query: req.query,
+      headers: req.headers,
+    });
+
     const dto = IncomingMessageSchema.parse(req.body);
     const query = req.query as { sync?: string };
     const isSync = dto.sync === true || query?.sync === 'true';
 
     if (isSync) {
       const result = await messagePipelineService.processIncomingMessage(dto);
-      return reply.status(200).send({
+      const response = {
         status: 'SUCCESS',
         data: result,
-      });
+      };
+      console.log('DEBUG: inbound response payload', response);
+      return reply.status(200).send(response);
     }
 
     const jobId = messageQueue.enqueue(dto);
-    return reply.status(202).send({
+    const response = {
       status: 'ACCEPTED',
       jobId,
       externalMessageId: dto.externalMessageId,
       chatId: dto.chatId,
-    });
+    };
+    console.log('DEBUG: queued inbound response payload', response);
+    return reply.status(202).send(response);
   }
 
   /**

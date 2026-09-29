@@ -1,5 +1,18 @@
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+import type {
+  PrismaClient as PrismaClientType,
+  Prisma as PrismaType,
+} from '@prisma/client';
 import { logger } from '../config/index.js';
+
+// Support both ESM and CJS bundle formats
+const rawPkg = (pkg as { default?: typeof pkg }).default || pkg;
+export const PrismaClient = ((rawPkg as { PrismaClient?: typeof PrismaClientType }).PrismaClient ||
+  rawPkg) as unknown as typeof PrismaClientType;
+export type PrismaClient = PrismaClientType;
+
+export const Prisma = ((rawPkg as { Prisma?: typeof PrismaType }).Prisma ||
+  rawPkg) as unknown as typeof PrismaType;
 
 let prismaInstance: PrismaClient | null = null;
 

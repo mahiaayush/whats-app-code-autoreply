@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Property WhatsApp AI</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="popup-shell">
+      <div class="header-row">
+        <div>
+          <div class="title">Property WhatsApp AI</div>
+          <div class="subtitle">Extension status</div>
+        </div>
+        <span id="status-pill" class="status-pill offline">Offline</span>
+      </div>
+
+      <div class="status-card">
+        <div class="label">Backend</div>
+        <div id="backend-status" class="value">Checking...</div>
+      </div>
+
+      <div class="status-card">
+        <div class="label">WebSocket</div>
+        <div id="ws-status" class="value">Checking...</div>
+      </div>
+
+      <div class="status-card">
+        <div class="label">Active chat</div>
+        <div id="chat-status" class="value">None</div>
+      </div>
+
+      <label class="field-label" for="messageText">Test message</label>
+      <textarea id="messageText" rows="3" placeholder="Type a test message to forward to the backend..."></textarea>
+
+      <div class="button-row">
+        <button id="refreshBtn" class="secondary">Refresh</button>
+        <button id="sendBtn" class="primary">Send</button>
+      </div>
+
+      <div id="resultBox" class="result-box" aria-live="polite">Ready.</div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

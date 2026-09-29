@@ -7,7 +7,7 @@ describe('Config Package', () => {
     expect(config.NODE_ENV).toBe('development');
     expect(config.PORT).toBe(3000);
     expect(config.AUTO_SEND).toBe(false);
-    expect(config.OLLAMA_MODEL).toBe('qwen2.5:3b');
+    expect(config.OLLAMA_MODEL).toBe('qwen2.5:1.5b');
     expect(config.AI_CONFIDENCE_THRESHOLD).toBe(0.85);
   });
 

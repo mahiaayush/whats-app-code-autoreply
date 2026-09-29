@@ -46,3 +46,5 @@ ollama_models/
 # Extension packaging
 *.zip
 *.crx
+
+.early.coverage

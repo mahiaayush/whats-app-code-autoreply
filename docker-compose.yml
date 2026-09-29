@@ -95,11 +95,11 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-whatsapp_ai}?schema=public
       REDIS_URL: redis://redis:6379
       OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
       JWT_SECRET: ${JWT_SECRET:-dev-jwt-super-secret-key-32-characters-long!}
       EXTENSION_API_KEY: ${EXTENSION_API_KEY:-ext_dev_secret_key_12345}
       ADMIN_API_KEY: ${ADMIN_API_KEY:-admin_dev_secret_key_67890}
-      AUTO_SEND: 'false'
+      AUTO_SEND: 'true'
       AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.85}
     ports:
       # Expose only on loopback for local extension & host access

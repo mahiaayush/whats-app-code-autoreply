@@ -322,7 +322,7 @@ export class MessagePipelineService {
     // Mark Incoming Message as PROCESSED
     await this.repo.updateMessageStatus(incomingMsg.id, 'PROCESSED');
 
-    // Notify Dashboard of Response Ready
+    // Notify Dashboard and browser extension of Response Ready
     this.wsManager.broadcast('AI_RESPONSE_READY', {
       conversationId: conversation.id,
       chatId: dto.chatId,
@@ -378,6 +378,16 @@ export class MessagePipelineService {
       agentId,
       action: 'APPROVE_MESSAGE',
       notes: `Approved message: ${msg.content.slice(0, 50)}...`,
+    });
+
+    this.wsManager.broadcast('AI_RESPONSE_READY', {
+      conversationId: msg.conversationId,
+      chatId: msg.conversation.chatId,
+      responseMessageId: messageId,
+      content: msg.content,
+      confidence: 1,
+      autoSend: true,
+      requiresHuman: false,
     });
 
     logger.info({ messageId, agentId }, 'Outbound message approved by agent');

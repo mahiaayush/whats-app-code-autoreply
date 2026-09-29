@@ -1,5 +1,5 @@
-import { getPrismaClient } from '../../database/prisma.client.js';
-import { Prisma } from '@prisma/client';
+import type { Prisma as PrismaTypes } from '@prisma/client';
+import { getPrismaClient, Prisma } from '../../database/prisma.client.js';
 import { logger } from '../../config/index.js';
 
 export interface CreateMessageInput {
@@ -10,7 +10,7 @@ export interface CreateMessageInput {
   content: string;
   status?: 'RECEIVED' | 'PROCESSING' | 'PROCESSED' | 'PENDING_APPROVAL' | 'SENT' | 'FAILED' | 'IGNORED';
   timestamp?: Date;
-  metadata?: Prisma.InputJsonValue;
+  metadata?: PrismaTypes.InputJsonValue;
 }
 
 export interface UpdateMessageProcessingInput {
@@ -36,7 +36,7 @@ export interface CreateAiResponseInput {
   requiresHuman?: boolean;
   escalationReason?: string | null;
   latencyMs?: number | null;
-  metadata?: Prisma.InputJsonValue;
+  metadata?: PrismaTypes.InputJsonValue;
 }
 
 export interface CreateEscalationInput {

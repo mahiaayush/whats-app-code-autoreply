@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Enable pnpm
 RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
+RUN apk add --no-cache openssl libc6-compat
 
 # Copy monorepo configuration files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json tsconfig.json ./
@@ -20,6 +21,7 @@ COPY apps/backend ./apps/backend
 
 # Install dependencies and build all dependencies and backend
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @property-ai/backend exec prisma generate
 RUN pnpm --filter @property-ai/backend... build
 
 # ==============================================================================
@@ -33,8 +35,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 
-# Install curl for container health check
-RUN apk add --no-cache curl
+# Install curl, openssl, and libc6-compat for container health check and Prisma runtime
+RUN apk add --no-cache curl openssl libc6-compat
 
 # Copy monorepo artifacts from builder
 COPY --from=builder /app/node_modules ./node_modules
