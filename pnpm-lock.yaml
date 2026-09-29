@@ -33,7 +33,14 @@ importers:
         specifier: ^3.0.5
         version: 3.2.7(@types/node@20.19.43)
 
-  apps/backend: {}
+  apps/backend:
+    dependencies:
+      '@property-ai/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@property-ai/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
 
   apps/chrome-extension: {}
 

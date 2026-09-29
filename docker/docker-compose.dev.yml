@@ -1,0 +1,28 @@
+# ==============================================================================
+# Development Overrides - docker-compose.dev.yml
+# ==============================================================================
+# Usage: docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up
+name: property-whatsapp-ai-dev
+
+services:
+  postgres:
+    ports:
+      # Bound strictly to localhost for Prisma CLI / DB GUI tools in development
+      - '127.0.0.1:5432:5432'
+
+  redis:
+    ports:
+      # Bound strictly to localhost for Redis Commander / local inspection
+      - '127.0.0.1:6379:6379'
+
+  backend:
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    volumes:
+      - ../apps/backend/src:/app/apps/backend/src:ro
+      - ../packages:/app/packages:ro
+
+  dashboard:
+    ports:
+      - '127.0.0.1:5173:80'

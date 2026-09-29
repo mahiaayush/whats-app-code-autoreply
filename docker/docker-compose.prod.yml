@@ -1,0 +1,54 @@
+# ==============================================================================
+# Production Overrides - docker-compose.prod.yml
+# ==============================================================================
+# Usage: docker compose -f docker/docker-compose.yml -f docker/docker-compose.prod.yml up -d
+name: property-whatsapp-ai-prod
+
+services:
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          memory: 512M
+
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  ollama:
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8192M
+        reservations:
+          memory: 2048M
+          # Uncomment below if running on an NVIDIA GPU host with nvidia-container-toolkit installed:
+          # devices:
+          #   - driver: nvidia
+          #     count: all
+          #     capabilities: [gpu]
+
+  backend:
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          memory: 256M
+
+  dashboard:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M

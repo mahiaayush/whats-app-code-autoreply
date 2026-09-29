@@ -1,0 +1,153 @@
+# ==============================================================================
+# Property Sales WhatsApp AI Automation - Root Docker Compose
+# ==============================================================================
+name: property-whatsapp-ai
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 16 Database
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: whatsapp_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-whatsapp_ai}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - property_network
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-whatsapp_ai}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # Redis 7 In-Memory Cache & Queues
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: whatsapp_redis
+    restart: unless-stopped
+    command: ['redis-server', '/usr/local/etc/redis/redis.conf']
+    volumes:
+      - redis_data:/data
+      - ./infrastructure/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - property_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 3s
+
+  # ----------------------------------------------------------------------------
+  # Ollama Local AI Engine (CPU-only default, GPU profile available)
+  # ----------------------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: whatsapp_ollama
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: '0.0.0.0'
+      OLLAMA_KEEP_ALIVE: '24h'
+    volumes:
+      - ollama_models:/root/.ollama
+    networks:
+      - property_network
+    healthcheck:
+      test: ['CMD-SHELL', 'ollama list > /dev/null 2>&1 || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ----------------------------------------------------------------------------
+  # Backend Fastify Service
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: whatsapp_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: '0.0.0.0'
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-whatsapp_ai}?schema=public
+      REDIS_URL: redis://redis:6379
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-super-secret-key-32-characters-long!}
+      EXTENSION_API_KEY: ${EXTENSION_API_KEY:-ext_dev_secret_key_12345}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-admin_dev_secret_key_67890}
+      AUTO_SEND: 'false'
+      AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.85}
+    ports:
+      # Expose only on loopback for local extension & host access
+      - '127.0.0.1:3000:3000'
+    networks:
+      - property_network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/v1/health']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ----------------------------------------------------------------------------
+  # Admin Dashboard UI
+  # ----------------------------------------------------------------------------
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    container_name: whatsapp_dashboard
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      # Expose only on loopback for host browser access
+      - '127.0.0.1:5173:80'
+    networks:
+      - property_network
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:80/health']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
+# ==============================================================================
+# Dedicated Isolated Network
+# ==============================================================================
+networks:
+  property_network:
+    name: property_network
+    driver: bridge
+
+# ==============================================================================
+# Persistent Volumes
+# ==============================================================================
+volumes:
+  postgres_data:
+    name: whatsapp_postgres_data
+  redis_data:
+    name: whatsapp_redis_data
+  ollama_models:
+    name: whatsapp_ollama_models

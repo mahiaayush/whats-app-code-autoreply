@@ -3,9 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
   "scripts": {
-    "build": "echo 'Backend scaffold placeholder - ready for Phase 2'",
-    "typecheck": "echo 'No types yet - ready for Phase 2'",
-    "test": "echo 'Backend tests placeholder'"
+    "build": "tsc -b",
+    "clean": "rimraf dist tsconfig.tsbuildinfo",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@property-ai/config": "workspace:*",
+    "@property-ai/shared-types": "workspace:*"
   }
 }
