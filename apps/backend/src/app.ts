@@ -7,6 +7,7 @@ import { config, logger } from './config/index.js';
 import { errorHandler } from './common/errors/error-handler.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { propertyRoutes } from './modules/properties/property.routes.js';
+import { shortcutRoutes, ruleRoutes } from './modules/rules/rule.routes.js';
 import { registerWebSocketRoutes } from './websocket/ws.server.js';
 
 export function buildApp() {
@@ -75,6 +76,8 @@ export function buildApp() {
   // Register Routes
   app.register(healthRoutes);
   app.register(propertyRoutes, { prefix: '/api/v1/properties' });
+  app.register(shortcutRoutes, { prefix: '/api/v1/shortcuts' });
+  app.register(ruleRoutes, { prefix: '/api/v1/rules' });
   app.register(registerWebSocketRoutes);
 
   return app;

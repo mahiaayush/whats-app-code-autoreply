@@ -101,7 +101,7 @@ property-whatsapp-ai/
 - [x] **Phase 2: Backend Foundation** (Fastify, Health/Ready, Logging, WebSocket)
 - [x] **Phase 3: Database & Prisma** (Schema, Migrations, Luxzirius Villas Seed)
 - [x] **Phase 4: Property Service** (Ground-truth repository & service queries)
-- [ ] **Phase 5: Shortcut/Rule Engine** (Deterministic commands & regex matching)
+- [x] **Phase 5: Shortcut/Rule Engine** (Deterministic commands & regex matching)
 - [ ] **Phase 6: Ollama Integration** (HTTP Client, retry, structured output validation)
 - [ ] **Phase 7: Message Processing Pipeline** (Async deduplication & dispatch)
 - [ ] **Phase 8: Conversation Management** (States: AI_ACTIVE, HUMAN_ACTIVE, PAUSED)

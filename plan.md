@@ -87,8 +87,7 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
 | **Phase 1** | **Docker Infrastructure** | **COMPLETED** | Multi-container Docker Compose (Backend, Dashboard, PostgreSQL, Redis, Ollama), isolated network `property_network`, health checks, volume persistence. |
 | **Phase 2** | **Backend Foundation** | **COMPLETED** | Fastify application factory, Pino logger, CORS configuration, Request ID tracking, WebSocket server with heartbeat, `/health` and `/ready` endpoints, centralized error handling. |
 | **Phase 3** | **Database & Prisma** | **COMPLETED** | Prisma schema with all 18 entities, migration applied, PostgreSQL connection pooling, seed script with *Luxzirius Villas* complete ground truth, shortcuts, and multilingual templates. |
-| **Phase 4** | **Property Service** | **COMPLETED** | Ground-truth repository & service layer, BigInt serialization, 10 REST endpoints (`/properties`, `/price`, `/units`, `/location`, `/amenities`, `/media`, `/availability`, `/faq`, `/contacts`, `/ground-truth`), Vitest integration test suite. |
-| **Phase 5** | **Shortcut / Rule Engine** | **PENDING** | Deterministic command parser (`/price`, `/area`, `/brochure`, etc.), regex intent matcher, priority ordering, zero-latency instant response cache. |
+| **Phase 5** | **Shortcut / Rule Engine** | **COMPLETED** | Deterministic command parser (`/price`, `/area`, `/brochure`, etc.), regex intent matcher, priority ordering, zero-latency instant response cache. |
 | **Phase 6** | **Ollama Local LLM** | **PENDING** | Fastify Ollama client wrapper, structured JSON output validation, fallback handling, temperature/timeout controls, prompt orchestrator. |
 | **Phase 7** | **Message Pipeline** | **PENDING** | Ingestion pipeline, Redis deduplication, async message queue, idempotent processing, message status transitions (`RECEIVED` -> `PROCESSED`). |
 | **Phase 8** | **Conversation Management**| **PENDING** | Conversation state machine (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`), customer lead profile tracking, session memory. |
@@ -157,6 +156,22 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
   - `GET /api/v1/properties/:slug/faq` — Ground-truth FAQs with keyword search
   - `GET /api/v1/properties/:slug/contacts` — Verified sales advisors
   - `GET /api/v1/properties/:slug/ground-truth` — Compiled fact sheet for AI prompt injection
+
+### Phase 5: Shortcut / Rule Engine (Completed)
+- **Deliverables**:
+  - `apps/backend/src/modules/rules/rule.repository.ts`: PostgreSQL data access for shortcuts and response templates.
+  - `apps/backend/src/modules/rules/rule.engine.ts`: In-memory compiled regex and command parser with priority weighting.
+  - `apps/backend/src/modules/rules/rule.service.ts`: End-to-end rule processing, template variable interpolation (`{{propertyName}}`, `{{startingPrice}}`, `{{carpetArea}}`, etc.), and multilingual template rendering.
+  - `apps/backend/src/modules/rules/rule.controller.ts` & `rule.routes.ts`: REST endpoints for rule matching and shortcut management.
+  - Unit and integration tests covering commands, natural language phrases, priority ordering, and API injection.
+- **Endpoints**:
+  - `GET /api/v1/shortcuts` — List active shortcuts
+  - `GET /api/v1/shortcuts/:command` — Get shortcut details by command
+  - `POST /api/v1/shortcuts` — Create custom shortcut (Zod validated)
+  - `PATCH /api/v1/shortcuts/:id` — Update shortcut priority or state
+  - `DELETE /api/v1/shortcuts/:id` — Delete shortcut
+  - `POST /api/v1/rules/match` — Match incoming message and return interpolated ground truth response
+  - `POST /api/v1/rules/reload` — Reload rules into memory cache
 
 ---
 

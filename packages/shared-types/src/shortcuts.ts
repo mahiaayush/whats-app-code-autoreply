@@ -7,6 +7,7 @@ export interface ShortcutRule {
   description: string;
   targetIntent: IntentType;
   naturalLanguagePhrases: string[];
+  responseTemplate?: string | null;
   enabled: boolean;
   priority: number;
 }
