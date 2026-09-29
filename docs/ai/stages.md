@@ -17,7 +17,7 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 [Phase 5: Shortcut/Rule Eng]  ──▶ COMPLETED  (Deterministic zero-latency matcher)
 [Phase 6: Ollama Client]      ──▶ COMPLETED  (Local LLM inference & JSON validation)
 [Phase 7: Message Pipeline]   ──▶ COMPLETED  (Async queue & intent dispatch)
-[Phase 8: Conversation State] ──▶ PENDING    (State machine & lead memory)
+[Phase 8: Conversation State] ──▶ COMPLETED  (State machine & lead memory)
 [Phase 9: Escalation Engine]  ──▶ PENDING    (Safety triggers & human handoff)
 [Phase 13: Auto-Send Guard]   ──▶ PENDING    (7-point safety verification)
 [Phase 15: AI Scenario Suite] ──▶ PENDING    (Multilingual conversational tests)
@@ -40,7 +40,7 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 | **AI-STAGE-09** | **Local Ollama HTTP Client & JSON Parser** | Phase 6 | **COMPLETED** | Fastify Ollama client wrapper with model discovery, automatic retry, fallback resolution (`qwen2.5:latest`/`qwen2.5:1.5b`), and strict Zod validation of structured LLM outputs. |
 | **AI-STAGE-10** | **Intent Classification & Language Detection** | Phase 6 | **COMPLETED** | Zero-latency pre-LLM safety guardrails (instant escalation on discount/legal/agent handoff), fast multilingual detection, and 13-intent classification with PostgreSQL fact grounding. |
 | **AI-STAGE-11** | **Async Message Ingestion & Deduplication** | Phase 7 | **COMPLETED** | Atomic Redis deduplication lock (`SET msg:dedup 1 EX 300 NX`), background worker queue with per-conversation FIFO serialization, 3-tier resolution engine (Shortcuts -> Safety -> LLM Grounding), and human approval/rejection endpoints. |
-| **AI-STAGE-12** | **Conversation Memory & State Machine** | Phase 8 | **PENDING** | Manages conversation modes (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`), tracking customer lead profiles and multi-turn context. |
+| **AI-STAGE-12** | **Conversation Memory & State Machine** | Phase 8 | **COMPLETED** | Validated state machine transitions between `AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`, `CLOSED`, rule-based customer lead profile extraction (budget, unit size, timeline, purpose), and multi-turn dialogue context. |
 | **AI-STAGE-13** | **Human Escalation & Safety Gate** | Phase 9 | **PENDING** | Automated detection of negotiation, discounts, legal disputes, complaints, and explicit human requests. WebSocket alert dispatch to dashboard. |
 | **AI-STAGE-14** | **7-Point Auto-Send Safety Verification** | Phase 13 | **PENDING** | Fail-safe pre-send checks ensuring `AUTO_SEND` conditions, chat identity matches, confidence thresholds, and anti-spam limits. |
 | **AI-STAGE-15** | **Multilingual E2E Evaluation Suite** | Phase 15 | **PENDING** | Automated test suite verifying 50+ real-world customer chat scenarios across English, Hindi, and Hinglish. |
@@ -66,16 +66,17 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
    - Seamless 3-tier routing: Rule Engine -> Pre-LLM Safety -> Grounded LLM Response.
    - Conversation mode bypass for `HUMAN_ACTIVE` and `PAUSED` chats.
    - Full message approval (`/api/v1/messages/:id/approve`) and rejection (`/:id/reject`) actions.
+8. **Conversation State Machine & Lead Memory (Phase 8)**:
+   - Complete state machine validating allowed transitions across all 5 conversation modes.
+   - Agent takeover, release, pause, resume, and close lifecycle endpoints.
+   - Automatic lead profile parameter extraction (budget, unit configuration, timeline, buyer type).
+   - Multi-turn conversation context history for LLM grounding.
 
 ---
 
 ## 4. What Is Pending (Next Steps)
 
-1. **Phase 8 — Conversation Management**:
-   - Explicit state machine transitions (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`, `CLOSED`).
-   - Customer lead profile extraction & enrichment.
-   - Multi-turn conversation context history.
-2. **Phase 9 — Human Escalation Engine**:
-   - SLA tracking on open escalations.
-   - Agent assignment & takeover controls.
-   - Real-time escalation notifications to admin dashboard.
+1. **Phase 9 — Human Escalation Engine**:
+   - Explicit SLA tracking on open escalations.
+   - Priority-based queueing and dashboard real-time dispatch.
+   - Agent assignment and resolution audit trail.

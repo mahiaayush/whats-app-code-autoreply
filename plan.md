@@ -1,7 +1,7 @@
 # Local AI WhatsApp Property Sales Automation — Master Implementation Plan
 
 > **System Status**: Active Development  
-> **Current Version**: 0.7.0  
+> **Current Version**: 0.8.0  
 > **Last Updated**: 2026-09-29  
 
 ---
@@ -90,7 +90,7 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
 | **Phase 5** | **Shortcut / Rule Engine** | **COMPLETED** | Deterministic command parser (`/price`, `/area`, `/brochure`, etc.), regex intent matcher, priority ordering, zero-latency instant response cache. |
 | **Phase 6** | **Ollama Local LLM** | **COMPLETED** | Resilient Fastify Ollama client, structured JSON output validation, fallback model resolution, pre-LLM safety guardrails, grounded fact response generation. |
 | **Phase 7** | **Message Pipeline** | **COMPLETED** | Ingestion pipeline, Redis deduplication with atomic locks, async worker queue with per-conversation FIFO serialization, 3-tier resolution engine (Shortcuts -> Pre-LLM Safety -> Grounded LLM), approval/rejection lifecycle. |
-| **Phase 8** | **Conversation Management**| **PENDING** | Conversation state machine (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`), customer lead profile tracking, session memory. |
+| **Phase 8** | **Conversation Management**| **COMPLETED** | Conversation state machine (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`, `CLOSED`), takeover/release/pause/resume/close lifecycles, customer lead profile extraction (budget, unit size, timeline, investor/end-user), multi-turn context memory. |
 | **Phase 9** | **Human Escalation Engine**| **PENDING** | Detection triggers (discount, negotiation, legal, RERA, complaint), WebSocket alert dispatch to dashboard, SLA tracking, agent assignment. |
 | **Phase 10**| **Transport Abstraction** | **PENDING** | Unified `MessageTransport` interface decoupling WhatsApp Web, WhatsApp Cloud API, and mock simulation transports for seamless testing. |
 | **Phase 11**| **Chrome Extension Core** | **PENDING** | Manifest V3 setup, background Service Worker, popup UI, persistent WebSocket connection to backend, badge status indicators. |
@@ -197,9 +197,27 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
 - **Endpoints**:
   - `POST /api/v1/messages/inbound` — Ingest inbound message from extension (sync or async mode)
   - `GET /api/v1/messages/:id` — Get message details with processing and escalation state
-  - `GET /api/v1/messages/conversation/:chatId` — Get conversation message history
   - `POST /api/v1/messages/:id/approve` — Human agent approves pending outbound message
   - `POST /api/v1/messages/:id/reject` — Human agent rejects proposed outbound message
+
+### Phase 8: Conversation Management (Completed)
+- **Deliverables**:
+  - `apps/backend/src/modules/conversations/conversation.state-machine.ts`: Deterministic state machine validating mode transitions between `AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`, `CLOSED`.
+  - `apps/backend/src/modules/conversations/conversation.repository.ts`: Prisma repository for paginated conversation queries, customer profile updates, human action audits, and unread counts.
+  - `apps/backend/src/modules/conversations/conversation.service.ts`: Business logic for agent takeover/release, pause/resume, close, rule-based lead profile extraction (budget, configuration, timeline, tags), and multi-turn context synthesis.
+  - `apps/backend/src/modules/conversations/conversation.controller.ts` & `conversation.routes.ts`: REST API endpoints under `/api/v1/conversations`.
+  - Unit and integration tests (`conversation.state-machine.test.ts`, `conversation.service.test.ts`, `conversation.routes.test.ts`).
+- **Endpoints**:
+  - `GET /api/v1/conversations` — Query conversations with mode/language filters and search
+  - `GET /api/v1/conversations/:id` — Get conversation details with lead profile and escalations
+  - `POST /api/v1/conversations/:id/takeover` — Agent takes over conversation (`-> HUMAN_ACTIVE`)
+  - `POST /api/v1/conversations/:id/release` — Agent releases conversation back to AI (`-> AI_ACTIVE`)
+  - `POST /api/v1/conversations/:id/pause` — Pause automation (`-> PAUSED`)
+  - `POST /api/v1/conversations/:id/resume` — Resume automation (`-> AI_ACTIVE`)
+  - `POST /api/v1/conversations/:id/close` — Close conversation (`-> CLOSED`)
+  - `PATCH /api/v1/conversations/:id` — Update conversation settings (`autoSend`, `propertySlug`, `language`)
+  - `PATCH /api/v1/conversations/:id/customer` — Update customer lead profile (`name`, `status`, `tags`, `notes`)
+  - `GET /api/v1/conversations/:id/context` — Retrieve multi-turn dialogue context
 
 ---
 

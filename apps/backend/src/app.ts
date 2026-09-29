@@ -10,6 +10,7 @@ import { propertyRoutes } from './modules/properties/property.routes.js';
 import { shortcutRoutes, ruleRoutes } from './modules/rules/rule.routes.js';
 import { aiRoutes } from './modules/ai/ai.routes.js';
 import { messageRoutes } from './modules/messages/message.routes.js';
+import { conversationRoutes } from './modules/conversations/conversation.routes.js';
 import { registerWebSocketRoutes } from './websocket/ws.server.js';
 
 export function buildApp() {
@@ -82,6 +83,7 @@ export function buildApp() {
   app.register(ruleRoutes, { prefix: '/api/v1/rules' });
   app.register(aiRoutes, { prefix: '/api/v1/ai' });
   app.register(messageRoutes, { prefix: '/api/v1/messages' });
+  app.register(conversationRoutes, { prefix: '/api/v1/conversations' });
   app.register(registerWebSocketRoutes);
 
   return app;

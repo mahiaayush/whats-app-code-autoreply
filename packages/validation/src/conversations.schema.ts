@@ -35,3 +35,29 @@ export const ConversationQuerySchema = z.object({
 });
 
 export type ConversationQueryDto = z.infer<typeof ConversationQuerySchema>;
+
+export const ConversationCloseSchema = z.object({
+  agentId: z.string().optional(),
+  reason: z.string().optional(),
+});
+
+export type ConversationCloseDto = z.infer<typeof ConversationCloseSchema>;
+
+export const UpdateConversationSettingsSchema = z.object({
+  propertySlug: z.string().optional(),
+  language: z.enum(['en', 'hi', 'hinglish']).optional(),
+  autoSend: z.boolean().optional(),
+});
+
+export type UpdateConversationSettingsDto = z.infer<typeof UpdateConversationSettingsSchema>;
+
+export const UpdateCustomerProfileSchema = z.object({
+  name: z.string().optional(),
+  preferredLanguage: z.string().optional(),
+  status: z.enum(['LEAD', 'PROSPECT', 'CUSTOMER', 'BLOCKED']).optional(),
+  tags: z.array(z.string()).optional(),
+  notes: z.string().optional(),
+});
+
+export type UpdateCustomerProfileDto = z.infer<typeof UpdateCustomerProfileSchema>;
+
