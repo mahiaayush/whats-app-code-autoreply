@@ -1,7 +1,7 @@
 # Local AI WhatsApp Property Sales Automation — Master Implementation Plan
 
 > **System Status**: Active Development  
-> **Current Version**: 0.8.0  
+> **Current Version**: 0.9.0  
 > **Last Updated**: 2026-09-29  
 
 ---
@@ -91,7 +91,7 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
 | **Phase 6** | **Ollama Local LLM** | **COMPLETED** | Resilient Fastify Ollama client, structured JSON output validation, fallback model resolution, pre-LLM safety guardrails, grounded fact response generation. |
 | **Phase 7** | **Message Pipeline** | **COMPLETED** | Ingestion pipeline, Redis deduplication with atomic locks, async worker queue with per-conversation FIFO serialization, 3-tier resolution engine (Shortcuts -> Pre-LLM Safety -> Grounded LLM), approval/rejection lifecycle. |
 | **Phase 8** | **Conversation Management**| **COMPLETED** | Conversation state machine (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`, `CLOSED`), takeover/release/pause/resume/close lifecycles, customer lead profile extraction (budget, unit size, timeline, investor/end-user), multi-turn context memory. |
-| **Phase 9** | **Human Escalation Engine**| **PENDING** | Detection triggers (discount, negotiation, legal, RERA, complaint), WebSocket alert dispatch to dashboard, SLA tracking, agent assignment. |
+| **Phase 9** | **Human Escalation Engine**| **COMPLETED** | Multi-category trigger detection (discounts, legal, RERA, cash, complaints, manager demands), deterministic priority assignment, dynamic SLA tracking & breach monitoring, agent assignment & audited resolution lifecycle, real-time WebSocket dashboard alerts. |
 | **Phase 10**| **Transport Abstraction** | **PENDING** | Unified `MessageTransport` interface decoupling WhatsApp Web, WhatsApp Cloud API, and mock simulation transports for seamless testing. |
 | **Phase 11**| **Chrome Extension Core** | **PENDING** | Manifest V3 setup, background Service Worker, popup UI, persistent WebSocket connection to backend, badge status indicators. |
 | **Phase 12**| **WhatsApp DOM Adapter** | **PENDING** | MutationObserver DOM integration, message scraping, sender classification, stable message ID generation, duplicate filtering. |
@@ -218,6 +218,25 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
   - `PATCH /api/v1/conversations/:id` — Update conversation settings (`autoSend`, `propertySlug`, `language`)
   - `PATCH /api/v1/conversations/:id/customer` — Update customer lead profile (`name`, `status`, `tags`, `notes`)
   - `GET /api/v1/conversations/:id/context` — Retrieve multi-turn dialogue context
+
+### Phase 9: Human Escalation Engine (Completed)
+- **Deliverables**:
+  - `apps/backend/src/modules/escalations/escalation.detector.ts`: High-speed multilingual regex classifier covering Legal/RERA disputes (`CRITICAL`), Fraud/Complaints (`CRITICAL`), Price negotiation (`HIGH`), Discounts (`HIGH`), Complex/Cash payment (`HIGH`), Manager/Human requests (`HIGH`), and Possession commitments (`MEDIUM`) in English, Hindi, and Hinglish.
+  - `apps/backend/src/modules/escalations/escalation.types.ts`: SLA configurations (CRITICAL: 15m, HIGH: 30m, MEDIUM: 60m, LOW: 120m), live SLA calculation schemas, and dashboard metrics contracts.
+  - `apps/backend/src/modules/escalations/escalation.repository.ts`: Full Prisma data layer for Escalations: paginated search, filter by status/priority/agent, agent assignment, resolution with `HumanAction` audit records, and aggregation queries.
+  - `apps/backend/src/modules/escalations/escalation.service.ts`: End-to-end orchestration: trigger evaluation, escalation creation with automatic conversation mode transition (`-> HUMAN_REQUIRED`), real-time WebSocket alert dispatch (`HUMAN_ATTENTION_REQUIRED`), agent assignment (`-> HUMAN_ACTIVE`), resolution, and dynamic SLA breach monitoring.
+  - `apps/backend/src/modules/escalations/escalation.controller.ts` & `escalation.routes.ts`: REST API endpoints under `/api/v1/escalations`.
+  - Integration with `MessagePipelineService`: Replaced hardcoded escalation priority with automated `EscalationDetector` categorization during inbound message processing.
+  - Unit and integration tests (`escalation.detector.test.ts`, `escalation.service.test.ts`, `escalation.routes.test.ts`) with 35 tests passing.
+- **Endpoints**:
+  - `GET /api/v1/escalations` — Query escalations with live SLA breach flags and filters
+  - `GET /api/v1/escalations/stats` — Operational dashboard metrics (open by priority, breached count, resolution time)
+  - `GET /api/v1/escalations/:id` — Get escalation details with conversation and trigger message
+  - `POST /api/v1/escalations/evaluate` — Evaluate message text against escalation triggers
+  - `POST /api/v1/escalations` — Manually create an escalation
+  - `POST /api/v1/escalations/:id/assign` — Assign escalation to agent (`-> IN_PROGRESS` and conversation `-> HUMAN_ACTIVE`)
+  - `POST /api/v1/escalations/:id/resolve` — Mark escalation resolved with audit logging
+  - `POST /api/v1/escalations/:id/dismiss` — Dismiss escalation with audit notes
 
 ---
 

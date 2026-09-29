@@ -1,7 +1,7 @@
 # AI Implementation Stages & Status Tracker
 
 > **Last Updated**: 2026-09-29  
-> **Tracker Version**: 1.0.0  
+> **Tracker Version**: 1.1.0  
 
 This document tracks the progress of all AI modules, intent classifiers, prompt templates, rule matching systems, and human safety guards in the platform.
 
@@ -18,7 +18,7 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 [Phase 6: Ollama Client]      ──▶ COMPLETED  (Local LLM inference & JSON validation)
 [Phase 7: Message Pipeline]   ──▶ COMPLETED  (Async queue & intent dispatch)
 [Phase 8: Conversation State] ──▶ COMPLETED  (State machine & lead memory)
-[Phase 9: Escalation Engine]  ──▶ PENDING    (Safety triggers & human handoff)
+[Phase 9: Escalation Engine]  ──▶ COMPLETED  (Safety triggers, SLA tracking & human handoff)
 [Phase 13: Auto-Send Guard]   ──▶ PENDING    (7-point safety verification)
 [Phase 15: AI Scenario Suite] ──▶ PENDING    (Multilingual conversational tests)
 ```
@@ -41,7 +41,7 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 | **AI-STAGE-10** | **Intent Classification & Language Detection** | Phase 6 | **COMPLETED** | Zero-latency pre-LLM safety guardrails (instant escalation on discount/legal/agent handoff), fast multilingual detection, and 13-intent classification with PostgreSQL fact grounding. |
 | **AI-STAGE-11** | **Async Message Ingestion & Deduplication** | Phase 7 | **COMPLETED** | Atomic Redis deduplication lock (`SET msg:dedup 1 EX 300 NX`), background worker queue with per-conversation FIFO serialization, 3-tier resolution engine (Shortcuts -> Safety -> LLM Grounding), and human approval/rejection endpoints. |
 | **AI-STAGE-12** | **Conversation Memory & State Machine** | Phase 8 | **COMPLETED** | Validated state machine transitions between `AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`, `CLOSED`, rule-based customer lead profile extraction (budget, unit size, timeline, purpose), and multi-turn dialogue context. |
-| **AI-STAGE-13** | **Human Escalation & Safety Gate** | Phase 9 | **PENDING** | Automated detection of negotiation, discounts, legal disputes, complaints, and explicit human requests. WebSocket alert dispatch to dashboard. |
+| **AI-STAGE-13** | **Human Escalation & Safety Gate** | Phase 9 | **COMPLETED** | Automated detection of negotiation, discounts, legal disputes, cash payment, complaints, and explicit human requests across EN, HI, Hinglish. Priority categorization (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), dynamic SLA breach tracking, agent assignment (`-> HUMAN_ACTIVE`), resolution auditing, and real-time WebSocket alert dispatch. |
 | **AI-STAGE-14** | **7-Point Auto-Send Safety Verification** | Phase 13 | **PENDING** | Fail-safe pre-send checks ensuring `AUTO_SEND` conditions, chat identity matches, confidence thresholds, and anti-spam limits. |
 | **AI-STAGE-15** | **Multilingual E2E Evaluation Suite** | Phase 15 | **PENDING** | Automated test suite verifying 50+ real-world customer chat scenarios across English, Hindi, and Hinglish. |
 
@@ -71,12 +71,19 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
    - Agent takeover, release, pause, resume, and close lifecycle endpoints.
    - Automatic lead profile parameter extraction (budget, unit configuration, timeline, buyer type).
    - Multi-turn conversation context history for LLM grounding.
+9. **Human Escalation Engine (Phase 9)**:
+   - Multi-category deterministic detection across 7 critical domains (Legal/RERA, Complaints/Fraud, Negotiation, Discounts, Complex payment, Manager requests, Possession delay).
+   - Dynamic SLA calculation & breach monitoring (CRITICAL: 15m, HIGH: 30m, MEDIUM: 60m, LOW: 120m).
+   - Integrated lifecycle: creation transitions conversation mode to `HUMAN_REQUIRED`, assignment transitions mode to `HUMAN_ACTIVE`, resolution logs audited `HumanAction`.
+   - Live WebSocket alert broadcast (`HUMAN_ATTENTION_REQUIRED`) to operators.
+   - Complete REST API (`/api/v1/escalations` with `/stats`, `/evaluate`, `/assign`, `/resolve`, `/dismiss`).
 
 ---
 
 ## 4. What Is Pending (Next Steps)
 
-1. **Phase 9 — Human Escalation Engine**:
-   - Explicit SLA tracking on open escalations.
-   - Priority-based queueing and dashboard real-time dispatch.
-   - Agent assignment and resolution audit trail.
+1. **Phase 10 — Transport Abstraction Layer**:
+   - Unified `MessageTransport` interface decoupling WhatsApp Web, WhatsApp Cloud API, and mock simulation transports.
+   - Outbound dispatch routing with retry policy and telemetry.
+2. **Phase 11 — Chrome Extension Core (Manifest V3)**:
+   - Service worker lifecycle, popup interface, persistent WebSocket transport, and extension badge alerts.

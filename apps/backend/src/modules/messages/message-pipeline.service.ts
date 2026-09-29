@@ -4,8 +4,9 @@ import { messageRepository, MessageRepository } from './message.repository.js';
 import { RuleService } from '../rules/rule.service.js';
 import { AiService } from '../ai/ai.service.js';
 import { WebSocketManager } from '../../websocket/ws.server.js';
+import { EscalationDetector } from '../escalations/escalation.detector.js';
 import type { IncomingMessageDto } from '@property-ai/validation';
-import type { EscalationReason } from '@property-ai/shared-types';
+import type { EscalationPriority, EscalationReason } from '@property-ai/shared-types';
 
 export interface MessagePipelineResult {
   messageId: string;
@@ -244,14 +245,16 @@ export class MessagePipelineService {
 
     if (resolution.requiresHuman) {
       // Mandatory escalation
-      const escalationReason = (resolution.escalationReason || 'HUMAN_REQUIRED') as EscalationReason;
+      const detection = EscalationDetector.evaluate(dto.message);
+      const escalationReason = (detection.reason || resolution.escalationReason || 'HUMAN_REQUEST') as EscalationReason;
+      const escalationPriority = (detection.requiresEscalation ? detection.priority : 'HIGH') as EscalationPriority;
 
       await this.repo.createEscalation({
         conversationId: conversation.id,
         messageId: incomingMsg.id,
         reason: escalationReason,
-        priority: 'HIGH',
-        details: `Auto-escalation triggered by inquiry: "${dto.message}"`,
+        priority: escalationPriority,
+        details: `Auto-escalation triggered by inquiry: "${dto.message}" (${detection.explanation})`,
         confidence: resolution.confidence,
       });
 
@@ -261,7 +264,7 @@ export class MessagePipelineService {
         chatId: dto.chatId,
         customerName: dto.customerName,
         reason: escalationReason,
-        priority: 'HIGH',
+        priority: escalationPriority,
         messageSnippet: dto.message.slice(0, 100),
       });
 
