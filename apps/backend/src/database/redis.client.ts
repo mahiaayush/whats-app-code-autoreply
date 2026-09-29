@@ -12,7 +12,7 @@ export function getRedisClient(): Redis {
         return delay;
       },
       lazyConnect: true,
-      enableOfflineQueue: false,
+      enableOfflineQueue: true,
     });
 
     redisInstance.on('connect', () => {
@@ -25,6 +25,19 @@ export function getRedisClient(): Redis {
   }
 
   return redisInstance;
+}
+
+export async function getConnectedRedisClient(): Promise<Redis> {
+  const client = getRedisClient();
+  if (client.status === 'wait') {
+    await client.connect();
+  } else if (client.status === 'connecting') {
+    await new Promise<void>((resolve, reject) => {
+      client.once('ready', () => resolve());
+      client.once('error', (err) => reject(err));
+    });
+  }
+  return client;
 }
 
 export async function checkRedisHealth(): Promise<{

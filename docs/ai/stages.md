@@ -16,7 +16,7 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 [Phase 4: Ground Truth Svc]   ──▶ COMPLETED  (Fact sheet generation & BigInt serialization)
 [Phase 5: Shortcut/Rule Eng]  ──▶ COMPLETED  (Deterministic zero-latency matcher)
 [Phase 6: Ollama Client]      ──▶ COMPLETED  (Local LLM inference & JSON validation)
-[Phase 7: Message Pipeline]   ──▶ PENDING    (Async queue & intent dispatch)
+[Phase 7: Message Pipeline]   ──▶ COMPLETED  (Async queue & intent dispatch)
 [Phase 8: Conversation State] ──▶ PENDING    (State machine & lead memory)
 [Phase 9: Escalation Engine]  ──▶ PENDING    (Safety triggers & human handoff)
 [Phase 13: Auto-Send Guard]   ──▶ PENDING    (7-point safety verification)
@@ -39,7 +39,7 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 | **AI-STAGE-08** | **Deterministic Shortcut & Rule Matcher** | Phase 5 | **COMPLETED** | High-speed regex and command parser matching `/command` and conversational phrases with priority weighting. |
 | **AI-STAGE-09** | **Local Ollama HTTP Client & JSON Parser** | Phase 6 | **COMPLETED** | Fastify Ollama client wrapper with model discovery, automatic retry, fallback resolution (`qwen2.5:latest`/`qwen2.5:1.5b`), and strict Zod validation of structured LLM outputs. |
 | **AI-STAGE-10** | **Intent Classification & Language Detection** | Phase 6 | **COMPLETED** | Zero-latency pre-LLM safety guardrails (instant escalation on discount/legal/agent handoff), fast multilingual detection, and 13-intent classification with PostgreSQL fact grounding. |
-| **AI-STAGE-11** | **Async Message Ingestion & Deduplication** | Phase 7 | **PENDING** | Redis-backed message deduplication and background worker queue for non-blocking message processing. |
+| **AI-STAGE-11** | **Async Message Ingestion & Deduplication** | Phase 7 | **COMPLETED** | Atomic Redis deduplication lock (`SET msg:dedup 1 EX 300 NX`), background worker queue with per-conversation FIFO serialization, 3-tier resolution engine (Shortcuts -> Safety -> LLM Grounding), and human approval/rejection endpoints. |
 | **AI-STAGE-12** | **Conversation Memory & State Machine** | Phase 8 | **PENDING** | Manages conversation modes (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`), tracking customer lead profiles and multi-turn context. |
 | **AI-STAGE-13** | **Human Escalation & Safety Gate** | Phase 9 | **PENDING** | Automated detection of negotiation, discounts, legal disputes, complaints, and explicit human requests. WebSocket alert dispatch to dashboard. |
 | **AI-STAGE-14** | **7-Point Auto-Send Safety Verification** | Phase 13 | **PENDING** | Fail-safe pre-send checks ensuring `AUTO_SEND` conditions, chat identity matches, confidence thresholds, and anti-spam limits. |
@@ -60,15 +60,22 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
    - 13-intent classifier with confidence thresholding (0.85).
    - Ground-truth response generator using verified PostgreSQL property facts.
    - End-to-end `/api/v1/ai/health`, `/models`, `/classify`, `/generate`, and `/chat` endpoints.
+7. **Message Processing Pipeline & Deduplication (Phase 7)**:
+   - Atomic Redis lock deduplication preventing duplicate message processing.
+   - Background worker queue with per-conversation FIFO serialization.
+   - Seamless 3-tier routing: Rule Engine -> Pre-LLM Safety -> Grounded LLM Response.
+   - Conversation mode bypass for `HUMAN_ACTIVE` and `PAUSED` chats.
+   - Full message approval (`/api/v1/messages/:id/approve`) and rejection (`/:id/reject`) actions.
 
 ---
 
 ## 4. What Is Pending (Next Steps)
 
-1. **Phase 7 — Message Processing Pipeline**:
-   - Ingest incoming messages from WhatsApp extension via REST/WebSocket.
-   - Redis deduplication preventing duplicate execution within deduplication window.
-   - Route through Rule Matcher -> Ollama LLM -> Response Dispatcher.
-2. **Phase 8 & 9 — Conversation State & Escalation**:
-   - Transition conversation states (`AI_ACTIVE` to `HUMAN_REQUIRED`).
-   - Emit WebSocket alerts to dashboard when discount or legal inquiries arise.
+1. **Phase 8 — Conversation Management**:
+   - Explicit state machine transitions (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`, `CLOSED`).
+   - Customer lead profile extraction & enrichment.
+   - Multi-turn conversation context history.
+2. **Phase 9 — Human Escalation Engine**:
+   - SLA tracking on open escalations.
+   - Agent assignment & takeover controls.
+   - Real-time escalation notifications to admin dashboard.

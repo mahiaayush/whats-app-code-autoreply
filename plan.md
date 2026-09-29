@@ -1,7 +1,7 @@
 # Local AI WhatsApp Property Sales Automation — Master Implementation Plan
 
 > **System Status**: Active Development  
-> **Current Version**: 0.6.0  
+> **Current Version**: 0.7.0  
 > **Last Updated**: 2026-09-29  
 
 ---
@@ -89,7 +89,7 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
 | **Phase 3** | **Database & Prisma** | **COMPLETED** | Prisma schema with all 18 entities, migration applied, PostgreSQL connection pooling, seed script with *Luxzirius Villas* complete ground truth, shortcuts, and multilingual templates. |
 | **Phase 5** | **Shortcut / Rule Engine** | **COMPLETED** | Deterministic command parser (`/price`, `/area`, `/brochure`, etc.), regex intent matcher, priority ordering, zero-latency instant response cache. |
 | **Phase 6** | **Ollama Local LLM** | **COMPLETED** | Resilient Fastify Ollama client, structured JSON output validation, fallback model resolution, pre-LLM safety guardrails, grounded fact response generation. |
-| **Phase 7** | **Message Pipeline** | **PENDING** | Ingestion pipeline, Redis deduplication, async message queue, idempotent processing, message status transitions (`RECEIVED` -> `PROCESSED`). |
+| **Phase 7** | **Message Pipeline** | **COMPLETED** | Ingestion pipeline, Redis deduplication with atomic locks, async worker queue with per-conversation FIFO serialization, 3-tier resolution engine (Shortcuts -> Pre-LLM Safety -> Grounded LLM), approval/rejection lifecycle. |
 | **Phase 8** | **Conversation Management**| **PENDING** | Conversation state machine (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`), customer lead profile tracking, session memory. |
 | **Phase 9** | **Human Escalation Engine**| **PENDING** | Detection triggers (discount, negotiation, legal, RERA, complaint), WebSocket alert dispatch to dashboard, SLA tracking, agent assignment. |
 | **Phase 10**| **Transport Abstraction** | **PENDING** | Unified `MessageTransport` interface decoupling WhatsApp Web, WhatsApp Cloud API, and mock simulation transports for seamless testing. |
@@ -185,6 +185,21 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
   - `POST /api/v1/ai/classify` — Classifies customer message intent & extracts entities
   - `POST /api/v1/ai/generate` — Generates grounded response using verified PostgreSQL facts
   - `POST /api/v1/ai/chat` — Full chat pipeline (detect language -> pre-LLM safety guard -> classify intent -> generate grounded response or escalate)
+
+### Phase 7: Message Processing Pipeline (Completed)
+- **Deliverables**:
+  - `apps/backend/src/modules/messages/message.dedup.ts`: Atomic Redis deduplication lock using `SET msg:dedup:${id} 1 EX 300 NX`, idempotent fallback to PostgreSQL `externalMessageId`.
+  - `apps/backend/src/modules/messages/message.repository.ts`: Full Prisma data access for customer upsert, conversation lifecycle, message logging, processing tracking, escalations, and human actions.
+  - `apps/backend/src/modules/messages/message-pipeline.service.ts`: Orchestrates 3-tier message resolution pipeline, human mode bypass, escalation dispatch, and outbound auto-send safeguards.
+  - `apps/backend/src/modules/messages/message.queue.ts`: Non-blocking async queue with per-conversation serialization to prevent race conditions during rapid messaging.
+  - `apps/backend/src/modules/messages/message.controller.ts` & `message.routes.ts`: REST API endpoints for `/inbound`, `/:id`, `/conversation/:chatId`, `/:id/approve`, `/:id/reject`.
+  - Unit and integration tests (`message.dedup.test.ts`, `message-pipeline.service.test.ts`, `message.routes.test.ts`).
+- **Endpoints**:
+  - `POST /api/v1/messages/inbound` — Ingest inbound message from extension (sync or async mode)
+  - `GET /api/v1/messages/:id` — Get message details with processing and escalation state
+  - `GET /api/v1/messages/conversation/:chatId` — Get conversation message history
+  - `POST /api/v1/messages/:id/approve` — Human agent approves pending outbound message
+  - `POST /api/v1/messages/:id/reject` — Human agent rejects proposed outbound message
 
 ---
 

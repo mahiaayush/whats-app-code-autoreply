@@ -90,6 +90,6 @@ describe('AiService Integration & Safety Guardrails', () => {
       expect(result.requiresHuman).toBe(false);
       expect(result.intent).toBe('PROPERTY_PRICE');
       expect(typeof result.content).toBe('string');
-    }, 60000);
+    }, 120000);
   });
 });

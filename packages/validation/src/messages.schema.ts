@@ -8,6 +8,8 @@ export const IncomingMessageSchema = z.object({
   message: z.string().min(1, 'message body cannot be empty').max(4000, 'message is too long'),
   timestamp: z.number().int().positive('timestamp must be a positive integer'),
   direction: z.enum(['INCOMING', 'OUTGOING']).default('INCOMING'),
+  propertySlug: z.string().optional(),
+  sync: z.boolean().optional(),
 });
 
 export type IncomingMessageDto = z.infer<typeof IncomingMessageSchema>;
@@ -21,3 +23,17 @@ export const OutgoingMessageSchema = z.object({
 });
 
 export type OutgoingMessageDto = z.infer<typeof OutgoingMessageSchema>;
+
+export const ApproveMessageSchema = z.object({
+  agentId: z.string().optional(),
+});
+
+export type ApproveMessageDto = z.infer<typeof ApproveMessageSchema>;
+
+export const RejectMessageSchema = z.object({
+  agentId: z.string().optional(),
+  reason: z.string().optional(),
+});
+
+export type RejectMessageDto = z.infer<typeof RejectMessageSchema>;
+
