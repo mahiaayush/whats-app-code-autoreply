@@ -97,10 +97,10 @@ property-whatsapp-ai/
 ## Implementation Roadmap
 
 - [x] **Phase 0: Project Bootstrap** (Monorepo, pnpm workspaces, TS, ESLint, Prettier, Shared Packages)
-- [ ] **Phase 1: Docker Infrastructure** (Docker Compose, PostgreSQL, Redis, Ollama)
-- [ ] **Phase 2: Backend Foundation** (Fastify, Health/Ready, Logging, WebSocket)
-- [ ] **Phase 3: Database & Prisma** (Schema, Migrations, Luxzirius Villas Seed)
-- [ ] **Phase 4: Property Service** (Ground-truth repository & service queries)
+- [x] **Phase 1: Docker Infrastructure** (Docker Compose, PostgreSQL, Redis, Ollama)
+- [x] **Phase 2: Backend Foundation** (Fastify, Health/Ready, Logging, WebSocket)
+- [x] **Phase 3: Database & Prisma** (Schema, Migrations, Luxzirius Villas Seed)
+- [x] **Phase 4: Property Service** (Ground-truth repository & service queries)
 - [ ] **Phase 5: Shortcut/Rule Engine** (Deterministic commands & regex matching)
 - [ ] **Phase 6: Ollama Integration** (HTTP Client, retry, structured output validation)
 - [ ] **Phase 7: Message Processing Pipeline** (Async deduplication & dispatch)
