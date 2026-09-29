@@ -4,7 +4,11 @@
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "references": [{ "path": "../../packages/shared-types" }, { "path": "../../packages/config" }],
+  "references": [
+    { "path": "../../packages/shared-types" },
+    { "path": "../../packages/validation" },
+    { "path": "../../packages/config" }
+  ],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

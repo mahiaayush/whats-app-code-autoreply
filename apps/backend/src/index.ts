@@ -1,57 +1,54 @@
-import http from 'node:http';
-import { APP_CONSTANTS } from '@property-ai/config';
+import { buildApp } from './app.js';
+import { config, logger } from './config/index.js';
+import { closeRedisClient } from './database/redis.client.js';
+import { WebSocketManager } from './websocket/ws.server.js';
 
-const PORT = Number(process.env.PORT) || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const app = buildApp();
 
-const server = http.createServer((req, res) => {
-  const url = req.url || '/';
-
-  if (url === '/api/v1/health' || url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(
-      JSON.stringify({
-        status: 'ok',
-        service: 'backend',
-        version: '0.1.0',
-        uptimeSeconds: Math.floor(process.uptime()),
-        timestamp: new Date().toISOString(),
-      }),
+async function startServer(): Promise<void> {
+  try {
+    await app.listen({
+      port: config.PORT,
+      host: config.HOST,
+    });
+    logger.info(
+      {
+        port: config.PORT,
+        host: config.HOST,
+        env: config.NODE_ENV,
+        nodeVersion: process.version,
+      },
+      'Backend Fastify service initialized and listening',
     );
-    return;
+  } catch (err) {
+    logger.fatal({ err }, 'Failed to start Fastify server');
+    process.exit(1);
   }
+}
 
-  if (url === '/api/v1/ready' || url === '/ready') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(
-      JSON.stringify({
-        status: 'ready',
-        service: 'backend',
-      }),
-    );
-    return;
-  }
+async function handleShutdown(signal: string): Promise<void> {
+  logger.info({ signal }, 'Graceful shutdown initiated');
 
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(
-    JSON.stringify({
-      message: `${APP_CONSTANTS.APP_NAME} Backend Service`,
-      status: 'online',
-    }),
-  );
-});
+  try {
+    // 1. Close WebSocket connections
+    WebSocketManager.getInstance().close();
 
-server.listen(PORT, HOST, () => {
-  console.log(`Backend server listening on http://${HOST}:${PORT}`);
-});
+    // 2. Stop accepting new HTTP requests and finish in-flight requests
+    await app.close();
+    logger.info('HTTP server closed');
 
-function handleShutdown(signal: string) {
-  console.log(`Received ${signal}, closing server gracefully...`);
-  server.close(() => {
-    console.log('HTTP server closed.');
+    // 3. Close Redis connection
+    await closeRedisClient();
+
+    logger.info('Graceful shutdown completed successfully');
     process.exit(0);
-  });
+  } catch (err) {
+    logger.error({ err }, 'Error during graceful shutdown');
+    process.exit(1);
+  }
 }
 
 process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 process.on('SIGINT', () => handleShutdown('SIGINT'));
+
+startServer();
