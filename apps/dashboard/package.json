@@ -1,0 +1,11 @@
+{
+  "name": "@property-ai/dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Dashboard scaffold placeholder - ready for Phase 14'",
+    "typecheck": "echo 'No types yet - ready for Phase 14'",
+    "test": "echo 'Dashboard tests placeholder'"
+  }
+}

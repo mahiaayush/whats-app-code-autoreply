@@ -1,0 +1,11 @@
+{
+  "name": "@property-ai/chrome-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Extension scaffold placeholder - ready for Phase 11'",
+    "typecheck": "echo 'No types yet - ready for Phase 11'",
+    "test": "echo 'Extension tests placeholder'"
+  }
+}
