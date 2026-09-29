@@ -1,0 +1,413 @@
+// ==============================================================================
+// Property WhatsApp AI - Prisma Schema
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------------------
+// Customer Entity
+// ------------------------------------------------------------------------------
+model Customer {
+  id                String         @id @default(uuid()) @db.Uuid
+  phone             String         @unique
+  name              String?
+  preferredLanguage String?        @default("en")
+  status            String         @default("LEAD") // LEAD, PROSPECT, CUSTOMER, BLOCKED
+  tags              String[]       @default([])
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  conversations     Conversation[]
+
+  @@index([phone])
+  @@index([status])
+  @@map("customers")
+}
+
+// ------------------------------------------------------------------------------
+// Conversation Entity
+// ------------------------------------------------------------------------------
+model Conversation {
+  id            String        @id @default(uuid()) @db.Uuid
+  chatId        String        @unique // e.g. "919876543210@c.us"
+  customerId    String        @db.Uuid
+  propertyId    String?       @db.Uuid
+  mode          String        @default("AI_ACTIVE") // AI_ACTIVE, HUMAN_REQUIRED, HUMAN_ACTIVE, PAUSED, CLOSED
+  language      String        @default("en")
+  autoSend      Boolean       @default(false)
+  unreadCount   Int           @default(0)
+  lastMessageAt DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  property      Property?     @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  messages      Message[]
+  escalations   Escalation[]
+  humanActions  HumanAction[]
+  aiResponses   AiResponse[]
+
+  @@index([chatId])
+  @@index([customerId])
+  @@index([propertyId])
+  @@index([mode])
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+// ------------------------------------------------------------------------------
+// Message Entity
+// ------------------------------------------------------------------------------
+model Message {
+  id                String             @id @default(uuid()) @db.Uuid
+  conversationId    String             @db.Uuid
+  externalMessageId String?            @unique // Unique WhatsApp Web message ID
+  sender            String             // CUSTOMER, AI, HUMAN, SYSTEM
+  direction         String             // INCOMING, OUTGOING
+  content           String             @db.Text
+  timestamp         DateTime           @default(now())
+  status            String             @default("RECEIVED") // RECEIVED, PROCESSING, PROCESSED, PENDING_APPROVAL, SENT, FAILED, IGNORED
+  metadata          Json?
+  createdAt         DateTime           @default(now())
+
+  conversation      Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  processing        MessageProcessing?
+  aiResponse        AiResponse?        @relation("TriggerMessage")
+  escalations       Escalation[]
+
+  @@index([conversationId])
+  @@index([externalMessageId])
+  @@index([sender])
+  @@index([direction])
+  @@index([timestamp])
+  @@map("messages")
+}
+
+// ------------------------------------------------------------------------------
+// MessageProcessing Entity (Async Pipeline State)
+// ------------------------------------------------------------------------------
+model MessageProcessing {
+  id               String   @id @default(uuid()) @db.Uuid
+  messageId        String   @unique @db.Uuid
+  status           String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  intent           String?
+  language         String?
+  confidence       Float?
+  requiresHuman    Boolean  @default(false)
+  ruleMatchedId    String?
+  processingTimeMs Int?
+  error            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  message          Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([intent])
+  @@map("message_processings")
+}
+
+// ------------------------------------------------------------------------------
+// Property Entity (Ground Truth Root)
+// ------------------------------------------------------------------------------
+model Property {
+  id                     String             @id @default(uuid()) @db.Uuid
+  slug                   String             @unique // e.g. "luxzirius-villas"
+  title                  String
+  tagline                String?
+  description            String             @db.Text
+  status                 String             @default("AVAILABLE") // AVAILABLE, FEW_UNITS_LEFT, SOLD_OUT, UPCOMING
+  developerName          String
+  reraRegistrationNumber String?
+  possessionDate         String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  location               PropertyLocation?
+  price                  PropertyPrice?
+  units                  PropertyUnit[]
+  amenities              PropertyAmenity[]
+  media                  PropertyMedia[]
+  faqs                   PropertyFaq[]
+  documents              PropertyDocument[]
+  contacts               PropertyContact[]
+  conversations          Conversation[]
+
+  @@index([slug])
+  @@index([status])
+  @@map("properties")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyLocation Entity
+// ------------------------------------------------------------------------------
+model PropertyLocation {
+  id                     String   @id @default(uuid()) @db.Uuid
+  propertyId             String   @unique @db.Uuid
+  address                String
+  city                   String
+  state                  String?
+  pincode                String?
+  landmark               String?
+  googleMapsUrl          String?
+  latitude               Float?
+  longitude              Float?
+  connectivityHighlights String[] @default([])
+
+  property               Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([city])
+  @@map("property_locations")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyPrice Entity
+// ------------------------------------------------------------------------------
+model PropertyPrice {
+  id                    String   @id @default(uuid()) @db.Uuid
+  propertyId            String   @unique @db.Uuid
+  startingPrice         BigInt
+  maxPrice              BigInt?
+  pricePerSqFt          Int?
+  currency              String   @default("INR")
+  priceDisplayFormatted String   // e.g. "₹1.50 Cr - ₹2.75 Cr"
+  bookingAmount         BigInt?
+  paymentPlans          String[] @default([])
+  maintenanceCharges    String?
+
+  property              Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_prices")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyUnit Entity
+// ------------------------------------------------------------------------------
+model PropertyUnit {
+  id                   String   @id @default(uuid()) @db.Uuid
+  propertyId           String   @db.Uuid
+  unitType             String   // e.g. "3BHK Villa", "4BHK Villa"
+  carpetAreaSqFt       Int
+  superBuiltUpAreaSqFt Int?
+  basePrice            BigInt?
+  priceDisplay         String?
+  floorPlanUrl         String?
+  unitsAvailable       Int      @default(1)
+
+  property             Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([unitType])
+  @@map("property_units")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyMedia Entity
+// ------------------------------------------------------------------------------
+model PropertyMedia {
+  id           String   @id @default(uuid()) @db.Uuid
+  propertyId   String   @db.Uuid
+  type         String   // IMAGE, VIDEO, BROCHURE, FLOOR_PLAN
+  title        String
+  url          String
+  thumbnailUrl String?
+  isHero       Boolean  @default(false)
+  orderIndex   Int      @default(0)
+
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([type])
+  @@map("property_media")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyAmenity Entity
+// ------------------------------------------------------------------------------
+model PropertyAmenity {
+  id          String   @id @default(uuid()) @db.Uuid
+  propertyId  String   @db.Uuid
+  category    String   // Sports, Leisure, Security, Wellness
+  name        String
+  description String?
+  icon        String?
+
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([category])
+  @@map("property_amenities")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyFaq Entity
+// ------------------------------------------------------------------------------
+model PropertyFaq {
+  id         String   @id @default(uuid()) @db.Uuid
+  propertyId String   @db.Uuid
+  question   String
+  answer     String   @db.Text
+  category   String?
+  keywords   String[] @default([])
+
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_faqs")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyDocument Entity
+// ------------------------------------------------------------------------------
+model PropertyDocument {
+  id            String   @id @default(uuid()) @db.Uuid
+  propertyId    String   @db.Uuid
+  title         String
+  type          String   // BROCHURE, FLOOR_PLAN, PRICE_SHEET, RERA_CERTIFICATE
+  fileUrl       String
+  fileSizeBytes Int?
+
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_documents")
+}
+
+// ------------------------------------------------------------------------------
+// PropertyContact Entity
+// ------------------------------------------------------------------------------
+model PropertyContact {
+  id                String   @id @default(uuid()) @db.Uuid
+  propertyId        String   @db.Uuid
+  role              String   // Senior Sales Advisor, Site Representative
+  name              String
+  phone             String
+  email             String?
+  availabilityHours String?
+
+  property          Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_contacts")
+}
+
+// ------------------------------------------------------------------------------
+// AiResponse Entity
+// ------------------------------------------------------------------------------
+model AiResponse {
+  id                String   @id @default(uuid()) @db.Uuid
+  conversationId    String   @db.Uuid
+  triggerMessageId  String?  @unique @db.Uuid
+  responseMessageId String?  @db.Uuid
+  intent            String
+  language          String
+  source            String   // SHORTCUT, RULE, FAQ_CACHE, LLM, HUMAN_FALLBACK
+  content           String   @db.Text
+  confidence        Float
+  requiresHuman     Boolean  @default(false)
+  escalationReason  String?
+  latencyMs         Int?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  triggerMessage    Message?     @relation("TriggerMessage", fields: [triggerMessageId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([intent])
+  @@index([source])
+  @@map("ai_responses")
+}
+
+// ------------------------------------------------------------------------------
+// Escalation Entity
+// ------------------------------------------------------------------------------
+model Escalation {
+  id              String    @id @default(uuid()) @db.Uuid
+  conversationId  String    @db.Uuid
+  messageId       String?   @db.Uuid
+  reason          String    // NEGOTIATION, DISCOUNT, LEGAL, REGISTRY, POSSESSION, COMPLEX_PAYMENT, COMPLAINTS, etc.
+  priority        String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status          String    @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, DISMISSED
+  details         String?   @db.Text
+  confidence      Float?
+  assignedAgentId String?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message         Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([status])
+  @@index([priority])
+  @@index([reason])
+  @@map("escalations")
+}
+
+// ------------------------------------------------------------------------------
+// HumanAction Entity
+// ------------------------------------------------------------------------------
+model HumanAction {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @db.Uuid
+  agentId        String
+  action         String   // TAKEOVER, RELEASE, PAUSE, RESUME, MANUAL_MESSAGE, ESCALATION_RESOLVED
+  notes          String?
+  timestamp      DateTime @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([agentId])
+  @@map("human_actions")
+}
+
+// ------------------------------------------------------------------------------
+// Shortcut Entity
+// ------------------------------------------------------------------------------
+model Shortcut {
+  id                     String   @id @default(uuid()) @db.Uuid
+  command                String   @unique // e.g. "/price", "/area"
+  name                   String
+  description            String
+  targetIntent           String   // e.g. "PROPERTY_PRICE"
+  naturalLanguagePhrases String[] @default([])
+  responseTemplate       String?  @db.Text
+  enabled                Boolean  @default(true)
+  priority               Int      @default(100)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([command])
+  @@index([targetIntent])
+  @@map("shortcuts")
+}
+
+// ------------------------------------------------------------------------------
+// Template Entity
+// ------------------------------------------------------------------------------
+model Template {
+  id                   String   @id @default(uuid()) @db.Uuid
+  slug                 String   @unique // e.g. "price-luxzirius-villas-hi"
+  name                 String
+  intent               String   // e.g. "PROPERTY_PRICE"
+  language             String   // hi, en, hinglish
+  templateText         String   @db.Text
+  requiredPlaceholders String[] @default([])
+  isActive             Boolean  @default(true)
+  version              Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([slug])
+  @@index([intent, language])
+  @@map("templates")
+}
