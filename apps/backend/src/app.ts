@@ -8,6 +8,7 @@ import { errorHandler } from './common/errors/error-handler.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { propertyRoutes } from './modules/properties/property.routes.js';
 import { shortcutRoutes, ruleRoutes } from './modules/rules/rule.routes.js';
+import { aiRoutes } from './modules/ai/ai.routes.js';
 import { registerWebSocketRoutes } from './websocket/ws.server.js';
 
 export function buildApp() {
@@ -78,6 +79,7 @@ export function buildApp() {
   app.register(propertyRoutes, { prefix: '/api/v1/properties' });
   app.register(shortcutRoutes, { prefix: '/api/v1/shortcuts' });
   app.register(ruleRoutes, { prefix: '/api/v1/rules' });
+  app.register(aiRoutes, { prefix: '/api/v1/ai' });
   app.register(registerWebSocketRoutes);
 
   return app;

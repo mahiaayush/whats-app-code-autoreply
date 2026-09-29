@@ -1,7 +1,7 @@
 # Local AI WhatsApp Property Sales Automation — Master Implementation Plan
 
 > **System Status**: Active Development  
-> **Current Version**: 0.4.0  
+> **Current Version**: 0.6.0  
 > **Last Updated**: 2026-09-29  
 
 ---
@@ -88,7 +88,7 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
 | **Phase 2** | **Backend Foundation** | **COMPLETED** | Fastify application factory, Pino logger, CORS configuration, Request ID tracking, WebSocket server with heartbeat, `/health` and `/ready` endpoints, centralized error handling. |
 | **Phase 3** | **Database & Prisma** | **COMPLETED** | Prisma schema with all 18 entities, migration applied, PostgreSQL connection pooling, seed script with *Luxzirius Villas* complete ground truth, shortcuts, and multilingual templates. |
 | **Phase 5** | **Shortcut / Rule Engine** | **COMPLETED** | Deterministic command parser (`/price`, `/area`, `/brochure`, etc.), regex intent matcher, priority ordering, zero-latency instant response cache. |
-| **Phase 6** | **Ollama Local LLM** | **PENDING** | Fastify Ollama client wrapper, structured JSON output validation, fallback handling, temperature/timeout controls, prompt orchestrator. |
+| **Phase 6** | **Ollama Local LLM** | **COMPLETED** | Resilient Fastify Ollama client, structured JSON output validation, fallback model resolution, pre-LLM safety guardrails, grounded fact response generation. |
 | **Phase 7** | **Message Pipeline** | **PENDING** | Ingestion pipeline, Redis deduplication, async message queue, idempotent processing, message status transitions (`RECEIVED` -> `PROCESSED`). |
 | **Phase 8** | **Conversation Management**| **PENDING** | Conversation state machine (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`, `PAUSED`), customer lead profile tracking, session memory. |
 | **Phase 9** | **Human Escalation Engine**| **PENDING** | Detection triggers (discount, negotiation, legal, RERA, complaint), WebSocket alert dispatch to dashboard, SLA tracking, agent assignment. |
@@ -172,6 +172,19 @@ The system is a local-first, privacy-respecting, AI-assisted conversational sale
   - `DELETE /api/v1/shortcuts/:id` — Delete shortcut
   - `POST /api/v1/rules/match` — Match incoming message and return interpolated ground truth response
   - `POST /api/v1/rules/reload` — Reload rules into memory cache
+
+### Phase 6: Ollama Local LLM Integration (Completed)
+- **Deliverables**:
+  - `apps/backend/src/modules/ai/ollama.client.ts`: Resilient local Ollama client connecting to Dockerized Ollama (`http://localhost:11434`), dynamic model discovery, fallback resolution (`qwen2.5:latest` / `qwen2.5:1.5b`), structured JSON generation with Zod validation, retry with exponential backoff.
+  - `apps/backend/src/modules/ai/ai.service.ts`: Fast multilingual language detector (`en`, `hi`, `hinglish`), Pre-LLM safety guardrails (instant zero-latency escalation to `HUMAN_REQUIRED` on negotiation/discounts, legal/RERA disputes, manager handoff), 13 domain intent classification with confidence scoring, grounded response generation strictly bounded to PostgreSQL facts from `PropertyService`, end-to-end `executeChatPipeline`.
+  - `apps/backend/src/modules/ai/ai.controller.ts` & `apps/backend/src/modules/ai/ai.routes.ts`: REST API endpoints with request/response Zod schema validation.
+  - Vitest integration and route suites (`ai.service.test.ts`, `ai.routes.test.ts`).
+- **Endpoints**:
+  - `GET /api/v1/ai/health` — Checks local Ollama connectivity and model availability
+  - `GET /api/v1/ai/models` — Lists available local Ollama models
+  - `POST /api/v1/ai/classify` — Classifies customer message intent & extracts entities
+  - `POST /api/v1/ai/generate` — Generates grounded response using verified PostgreSQL facts
+  - `POST /api/v1/ai/chat` — Full chat pipeline (detect language -> pre-LLM safety guard -> classify intent -> generate grounded response or escalate)
 
 ---
 

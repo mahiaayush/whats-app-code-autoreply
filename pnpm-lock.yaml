@@ -50,6 +50,9 @@ importers:
       '@property-ai/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@property-ai/prompts':
+        specifier: workspace:*
+        version: link:../../packages/prompts
       '@property-ai/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

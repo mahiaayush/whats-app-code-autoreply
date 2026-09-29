@@ -15,7 +15,7 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 [Phase 3: DB Seed & Templates]──▶ COMPLETED  (Shortcuts & multilingual templates seeded)
 [Phase 4: Ground Truth Svc]   ──▶ COMPLETED  (Fact sheet generation & BigInt serialization)
 [Phase 5: Shortcut/Rule Eng]  ──▶ COMPLETED  (Deterministic zero-latency matcher)
-[Phase 6: Ollama Client]      ──▶ PENDING    (Local LLM inference & JSON validation)
+[Phase 6: Ollama Client]      ──▶ COMPLETED  (Local LLM inference & JSON validation)
 [Phase 7: Message Pipeline]   ──▶ PENDING    (Async queue & intent dispatch)
 [Phase 8: Conversation State] ──▶ PENDING    (State machine & lead memory)
 [Phase 9: Escalation Engine]  ──▶ PENDING    (Safety triggers & human handoff)
@@ -37,8 +37,8 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 | **AI-STAGE-06** | **Ground-Truth Fact Sheet Compiler** | Phase 4 | **COMPLETED** | `PropertyService.getGroundTruthFactSheet(slug)` compiles unalterable property parameters into prompt contexts for 100% hallucination prevention. |
 | **AI-STAGE-07** | **Zero-Latency Deterministic Formatters** | Phase 4 | **COMPLETED** | `formatPriceResponse()` and `formatAvailabilityResponse()` producing exact database-driven answers in EN, HI, and Hinglish. |
 | **AI-STAGE-08** | **Deterministic Shortcut & Rule Matcher** | Phase 5 | **COMPLETED** | High-speed regex and command parser matching `/command` and conversational phrases with priority weighting. |
-| **AI-STAGE-09** | **Local Ollama HTTP Client & JSON Parser** | Phase 6 | **PENDING** | Fastify Ollama client wrapper with automatic retry, timeout handling, and strict Zod validation of structured LLM outputs. |
-| **AI-STAGE-10** | **Intent Classification & Language Detection** | Phase 6 | **PENDING** | Prompt pipeline classifying messages into 13 domain intents with confidence scoring and entity extraction. |
+| **AI-STAGE-09** | **Local Ollama HTTP Client & JSON Parser** | Phase 6 | **COMPLETED** | Fastify Ollama client wrapper with model discovery, automatic retry, fallback resolution (`qwen2.5:latest`/`qwen2.5:1.5b`), and strict Zod validation of structured LLM outputs. |
+| **AI-STAGE-10** | **Intent Classification & Language Detection** | Phase 6 | **COMPLETED** | Zero-latency pre-LLM safety guardrails (instant escalation on discount/legal/agent handoff), fast multilingual detection, and 13-intent classification with PostgreSQL fact grounding. |
 | **AI-STAGE-11** | **Async Message Ingestion & Deduplication** | Phase 7 | **PENDING** | Redis-backed message deduplication and background worker queue for non-blocking message processing. |
 | **AI-STAGE-12** | **Conversation Memory & State Machine** | Phase 8 | **PENDING** | Manages conversation modes (`AI_ACTIVE`, `HUMAN_REQUIRED`, `HUMAN_ACTIVE`), tracking customer lead profiles and multi-turn context. |
 | **AI-STAGE-13** | **Human Escalation & Safety Gate** | Phase 9 | **PENDING** | Automated detection of negotiation, discounts, legal disputes, complaints, and explicit human requests. WebSocket alert dispatch to dashboard. |
@@ -54,19 +54,21 @@ This document tracks the progress of all AI modules, intent classifiers, prompt 
 3. **Ground-Truth Data Layer**: PostgreSQL stores verified facts (prices, configurations, amenities, contacts), and `PropertyService` exposes them as structured prompt injection text and deterministic localized formatters.
 4. **Deterministic Seed Cache**: Shortcuts and multilingual templates are active in PostgreSQL and ready for high-speed resolution.
 5. **Deterministic Shortcut/Rule Matcher (Phase 5)**: Exact command matching, regex phrase parsing, priority sorting, and template variable rendering.
+6. **Ollama Integration & LLM Pipeline (Phase 6)**:
+   - `OllamaClient` with model fallback, JSON schema enforcement, and retry mechanisms.
+   - Pre-LLM safety guardrails for instant human escalation (negotiation, discounts, disputes).
+   - 13-intent classifier with confidence thresholding (0.85).
+   - Ground-truth response generator using verified PostgreSQL property facts.
+   - End-to-end `/api/v1/ai/health`, `/models`, `/classify`, `/generate`, and `/chat` endpoints.
 
 ---
 
 ## 4. What Is Pending (Next Steps)
 
-1. **Phase 6 — Ollama Integration**:
-   - Create `OllamaClient` in backend (`apps/backend/src/modules/ai/ollama.client.ts`).
-   - Implement structured output validation ensuring Ollama returns valid JSON conforming to `AIClassificationResultSchema`.
-   - Setup fallback mechanism when confidence is `< 0.85`.
-2. **Phase 7 — Message Processing Pipeline**:
-   - Ingest incoming messages from WhatsApp extension.
-   - Redis deduplication preventing duplicate execution.
+1. **Phase 7 — Message Processing Pipeline**:
+   - Ingest incoming messages from WhatsApp extension via REST/WebSocket.
+   - Redis deduplication preventing duplicate execution within deduplication window.
    - Route through Rule Matcher -> Ollama LLM -> Response Dispatcher.
-3. **Phase 8 & 9 — Conversation State & Escalation**:
+2. **Phase 8 & 9 — Conversation State & Escalation**:
    - Transition conversation states (`AI_ACTIVE` to `HUMAN_REQUIRED`).
    - Emit WebSocket alerts to dashboard when discount or legal inquiries arise.

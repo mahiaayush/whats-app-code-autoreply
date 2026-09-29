@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    testTimeout: 60000,
+    hookTimeout: 60000,
+    fileParallelism: false,
     include: [
       'packages/**/*.test.ts',
       'packages/**/*.spec.ts',

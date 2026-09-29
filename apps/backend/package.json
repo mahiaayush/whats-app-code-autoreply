@@ -18,6 +18,7 @@
     "@fastify/websocket": "^10.0.1",
     "@prisma/client": "^5.22.0",
     "@property-ai/config": "workspace:*",
+    "@property-ai/prompts": "workspace:*",
     "@property-ai/shared-types": "workspace:*",
     "@property-ai/validation": "workspace:*",
     "fastify": "^4.28.1",
